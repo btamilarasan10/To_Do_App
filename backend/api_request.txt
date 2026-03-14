@@ -1,0 +1,120 @@
+================================================================================
+REQUEST 1/10: LOGIN (GET TOKEN FIRST)
+================================================================================
+METHOD: POST
+URL: http://127.0.0.1:8000/api/login/
+HEADERS:
+  Content-Type: application/json
+
+BODY:
+{
+  "email": "tamil@gmail.com",
+  "password": "password"
+}
+---
+RESPONSE: Copy "access" token value!
+---
+
+================================================================================
+REQUEST 2/10: CREATE TASK #1
+================================================================================
+METHOD: POST
+URL: http://127.0.0.1:8000/api/tasks/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+  Content-Type: application/json
+
+BODY:
+{
+  "list": 1,
+  "title": "Build React Dashboard",
+  "description": "Task lists + profile page",
+  "due_datetime": "2026-03-10T18:00:00Z",
+  "priority": "high"
+}
+
+================================================================================
+REQUEST 3/10: CREATE TASK #2  
+================================================================================
+METHOD: POST
+URL: http://127.0.0.1:8000/api/tasks/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+  Content-Type: application/json
+
+BODY:
+{
+  "list": 1,
+  "title": "Fix Django Auth Bug", 
+  "description": "Login issues",
+  "due_datetime": "2026-03-09T12:00:00Z",
+  "priority": "medium"
+}
+
+================================================================================
+REQUEST 4/10: PENDING TASKS
+================================================================================
+METHOD: GET
+URL: http://127.0.0.1:8000/api/tasks/pending/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+
+================================================================================
+REQUEST 5/10: DASHBOARD STATS
+================================================================================
+METHOD: GET  
+URL: http://127.0.0.1:8000/api/tasks/stats/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+
+================================================================================
+REQUEST 6/10: GET PROFILE
+================================================================================
+METHOD: GET
+URL: http://127.0.0.1:8000/api/profile/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+
+================================================================================
+REQUEST 7/10: ALL LISTS
+================================================================================
+METHOD: GET
+URL: http://127.0.0.1:8000/api/lists/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+
+================================================================================
+REQUEST 8/10: MARK TASK #1 COMPLETE
+================================================================================
+METHOD: PATCH
+URL: http://127.0.0.1:8000/api/tasks/1/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+  Content-Type: application/json
+
+BODY:
+{
+  "is_completed": true
+}
+
+================================================================================
+REQUEST 9/10: UPDATE TASK #2 PRIORITY
+================================================================================
+METHOD: PATCH
+URL: http://127.0.0.1:8000/api/tasks/2/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
+  Content-Type: application/json
+
+BODY:
+{
+  "priority": "high"
+}
+
+================================================================================
+REQUEST 10/10: DELETE TASK #2
+================================================================================
+METHOD: DELETE
+URL: http://127.0.0.1:8000/api/tasks/2/
+HEADERS:
+  Authorization: Bearer YOUR_TOKEN_HERE
