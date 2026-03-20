@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from .models import List, Task, FocusSession, Profile
+from django.contrib.auth.password_validation import validate_password
 
 
 
@@ -154,3 +155,36 @@ class FocusSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FocusSession
         fields = '__all__'
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    new_password_confirm = serializers.CharField(required=True)
+    
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password incorrect!")
+        return value
+    
+    def validate(self, data):
+        if data['new_password'] != data['new_password_confirm']:
+            raise serializers.ValidationError("Passwords don't match!")
+        validate_password(data['new_password'], self.context['request'].user)
+        return data
+
+class UpdateEmailSerializer(serializers.Serializer):
+    new_email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True)
+    
+    def validate_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Password incorrect!")
+        return value
+    
+    def validate_new_email(self, value):
+        if User.objects.filter(email=value).exclude(pk=self.context['request'].user.pk).exists():
+            raise serializers.ValidationError("Email already exists!")
+        return value

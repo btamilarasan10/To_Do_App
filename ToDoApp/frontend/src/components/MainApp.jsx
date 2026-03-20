@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api.js';
-import { Plus,ChevronLeft, LogOut, Edit, Trash2, Check, Clock, Search, Star, User, Mail, Lock, Shield, Calendar, CheckCircle, Upload, X, Loader2 } from 'lucide-react';
+import { Plus, ChevronLeft, LogOut, Edit, Trash2, Check, Clock, Search, Star, User, Mail, Lock, Shield, Calendar, CheckCircle, Upload, X, Loader2 } from 'lucide-react';
 
 
 const MainApp = () => {
@@ -11,7 +11,7 @@ const MainApp = () => {
     const [profile, setProfile] = useState(null);
     const [userName, setUserName] = useState('Loading...');
     const [selectedList, setSelectedList] = useState(null);
-    
+
     const [searchTerm, setSearchTerm] = useState('');
     const [newTask, setNewTask] = useState({
         title: '', description: '', due_datetime: '', priority: 'medium'
@@ -26,6 +26,11 @@ const MainApp = () => {
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [avatarFile, setAvatarFile] = useState(null);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [activeTab, setActiveTab] = useState('avatar');
+    const [oldPassword, setOldPassword] = useState('');
+    const [newEmail, setNewEmail] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
 
     // ✅ NEW: Onboarding-style avatar states
     const [avatars, setAvatars] = useState([]);
@@ -33,10 +38,21 @@ const MainApp = () => {
     const [avatarError, setAvatarError] = useState('');
     const [selectedAvatar, setSelectedAvatar] = useState(null);
 
+
     useEffect(() => {
         fetchAllData();
     }, []);
-
+    const [showEditProfile, setShowEditProfile] = useState(false);
+    const [editForm, setEditForm] = useState({
+        fullname: '',      // ✅ Backend field name
+        bio: '',
+        email: '',
+        oldpassword: '',   // ✅ Frontend state
+        newpassword: '',
+        newpasswordconfirm: ''
+    });
+    const [editLoading, setEditLoading] = useState(false);
+    const [editError, setEditError] = useState('');
     // ✅ FIXED: Onboarding-style avatar fetching
     const fetchAvatars = async () => {
         try {
@@ -312,26 +328,110 @@ const MainApp = () => {
         .filter(task => new Date(task.due_datetime) > new Date())
         .sort((a, b) => new Date(a.due_datetime) - new Date(b.due_datetime))
         .slice(0, 5);
+    // ✅ ADD THIS ENTIRE FUNCTION
+
+    const handleEditProfile = async (e) => {
+        e.preventDefault();
+        setEditLoading(true);
+        setEditError('');
+
+        try {
+            // 1. PROFILE INFO (always try - safe if empty)
+            if (editForm.fullname?.trim() || editForm.bio?.trim()) {
+                await api.put('/profile/me/', {
+                    full_name: editForm.fullname?.trim() || '',  // ✅ Backend field name
+                    bio: editForm.bio?.trim() || ''
+                });
+            }
+
+            // 2. EMAIL CHANGE (Email tab active)
+            if (newEmail?.trim() && oldPassword?.trim() && activeTab === 'email') {
+                await api.patch('/profile/update_email/', {
+                    new_email: newEmail.trim(),
+                    password: oldPassword.trim()
+                });
+                setNewEmail('');  // Clear immediately
+            }
+
+            // 3. PASSWORD CHANGE (Password tab active)  
+            if (newPassword?.trim() && confirmPassword?.trim() && oldPassword?.trim() && activeTab === 'password') {
+                if (newPassword !== confirmPassword) {
+                    setEditError('New passwords do not match!');
+                    return;
+                }
+                if (newPassword.length < 8) {
+                    setEditError('Password must be 8+ characters!');
+                    return;
+                }
+                await api.patch('/profile/change_password/', {
+                    old_password: oldPassword.trim(),
+                    new_password: newPassword.trim(),
+                    new_password_confirm: confirmPassword.trim()
+                });
+                setNewPassword('');
+                setConfirmPassword('');
+            }
+
+            // ✅ SUCCESS - Refresh everything
+            await fetchAllData();
+            setShowEditProfile(false);
+            setEditError('✅ Profile updated successfully!');
+
+            // Reset ALL forms
+            setNewEmail('');
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setEditForm({ fullname: '', bio: '', email: '', oldpassword: '', newpassword: '', newpasswordconfirm: '' });
+
+        } catch (error) {
+            console.error('Update failed:', error.response?.data);
+            const errorMsg = error.response?.data;
+
+            // Better error messages
+            if (errorMsg?.old_password) setEditError('Old password incorrect!');
+            else if (errorMsg?.new_email) setEditError('Email already exists or invalid!');
+            else if (errorMsg?.new_password) setEditError('Password too weak! Use 8+ chars.');
+            else setEditError(errorMsg?.detail || 'Update failed. Try again.');
+
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    // 👇 ADD THIS RIGHT AFTER
+    const handleTabSubmit = handleEditProfile;
+
+
+
+
+
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white overflow-hidden">
             {/* ✅ FIXED AVATAR MODAL - File Upload + Gallery */}
+            {/* 🔥 AVATAR SELECTION MODAL */}
             {showAvatarModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
                     <div className="bg-gradient-to-b from-slate-900/95 to-purple-900/95 backdrop-blur-xl rounded-3xl border border-white/20 w-full max-w-4xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-3xl font-black bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
                                 Choose Your Avatar
                             </h3>
                             <button
-                                onClick={() => { setShowAvatarModal(false); setAvatarFile(null); setSelectedAvatar(null); }}
+                                onClick={() => {
+                                    setShowAvatarModal(false);
+                                    setAvatarFile(null);
+                                    setSelectedAvatar(null);
+                                }}
                                 className="p-2 hover:bg-white/10 rounded-xl"
                             >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
 
-                        {/* ✅ FILE UPLOAD SECTION */}
+                        {/* FILE UPLOAD */}
                         <div className="mb-12">
                             <h4 className="text-xl font-bold mb-6 text-center">Upload Custom Avatar</h4>
                             <div className="w-48 h-48 mx-auto rounded-3xl border-4 border-dashed border-white/30 bg-white/5 flex flex-col items-center justify-center p-8 group hover:border-emerald-400/50 cursor-pointer mb-6"
@@ -361,10 +461,9 @@ const MainApp = () => {
                             </button>
                         </div>
 
-                        {/* ✅ AVATAR GALLERY */}
+                        {/* AVATAR GALLERY */}
                         <div className="border-t border-white/20 pt-8">
                             <h4 className="text-xl font-bold mb-6 text-center">Or Choose from Gallery</h4>
-
                             {avatarLoading ? (
                                 <div className="text-center py-12">
                                     <Loader2 className="w-12 h-12 animate-spin text-white mx-auto mb-4" />
@@ -382,8 +481,8 @@ const MainApp = () => {
                                             key={avatar.id}
                                             onClick={() => selectAvatar(avatar.id)}
                                             className={`group relative p-4 rounded-3xl h-32 flex flex-col items-center justify-center transition-all duration-500 border-4 shadow-2xl hover:shadow-3xl ${profile?.avatar_id === avatar.id
-                                                    ? 'border-emerald-400 bg-emerald-500/30 ring-4 ring-emerald-400/40 scale-105'
-                                                    : 'border-white/20 bg-white/10 hover:border-emerald-400/50 hover:bg-emerald-500/20 hover:scale-105'
+                                                ? 'border-emerald-400 bg-emerald-500/30 ring-4 ring-emerald-400/40 scale-105'
+                                                : 'border-white/20 bg-white/10 hover:border-emerald-400/50 hover:bg-emerald-500/20 hover:scale-105'
                                                 }`}
                                         >
                                             <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 mb-3 shadow-xl group-hover:shadow-2xl transition-all">
@@ -417,6 +516,185 @@ const MainApp = () => {
                 </div>
             )}
 
+            {showEditProfile && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-start pt-20 px-4 sm:pt-24 justify-center p-4">
+                    <div className="bg-gradient-to-b from-slate-900/95 to-purple-900/95 backdrop-blur-xl rounded-3xl border border-white/20 w-full max-w-2xl max-h-[85vh] overflow-y-auto p-8 shadow-3xl mx-4">
+
+                        {/* HEADER */}
+                        <div className="flex items-center justify-between mb-8 sticky top-0 bg-black/50 backdrop-blur-xl pt-4 z-10 border-b border-white/10 pb-6">
+                            <h3 className="text-3xl font-black bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                                Edit Profile
+                            </h3>
+                            <button onClick={() => setShowEditProfile(false)} className="p-2 hover:bg-white/10 rounded-xl">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* ERROR */}
+                        {editError && (
+                            <div className="p-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded-2xl text-red-200 mb-6 flex items-center space-x-3">
+                                <span>⚠️</span><span>{editError}</span>
+                            </div>
+                        )}
+
+                        {/* 🔥 TAB BUTTONS */}
+                        <div className="flex bg-white/10 backdrop-blur-sm rounded-2xl p-1 border border-white/20 mb-8">
+                            <button
+                                onClick={() => {
+                                    // Reset tab states first
+                                    setActiveTab('avatar');
+                                    setOldPassword('');
+                                    setNewEmail('');
+                                    setNewPassword('');
+                                    setConfirmPassword('');
+
+                                    setEditForm({
+                                        fullname: profile?.fullname || '',
+                                        bio: profile?.bio || '',
+                                        email: profile?.user?.email || '',
+                                        oldpassword: '',
+                                        newpassword: '',
+                                        newpasswordconfirm: ''
+                                    });
+                                    setShowEditProfile(true);
+                                }}
+                            >
+                                <User className="w-5 h-5 inline mr-2" /> Avatar
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('email')}
+                                className={`flex-1 py-3 px-6 font-bold rounded-xl transition-all ${activeTab === 'email'
+                                    ? 'bg-blue-500 text-white shadow-lg'
+                                    : 'text-white hover:bg-white/20'
+                                    }`}
+                            >
+                                <Mail className="w-5 h-5 inline mr-2" /> Gmail
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('password')}
+                                className={`flex-1 py-3 px-6 font-bold rounded-xl transition-all ${activeTab === 'password'
+                                    ? 'bg-orange-500 text-white shadow-lg'
+                                    : 'text-white hover:bg-white/20'
+                                    }`}
+                            >
+                                <Lock className="w-5 h-5 inline mr-2" /> Password
+                            </button>
+                        </div>
+
+                        <form className="space-y-6" onSubmit={(e) => handleTabSubmit(e)}>
+                            {/* 🔥 TAB 1: AVATAR */}
+                            {activeTab === 'avatar' && (
+                                <div className="text-center space-y-6">
+                                    <h4 className="text-2xl font-black text-emerald-400 mb-8 flex items-center justify-center gap-3">
+                                        <User className="w-7 h-7" />
+                                        Profile Picture
+                                    </h4>
+                                    <div className="max-w-sm mx-auto">
+                                        <div className="w-36 h-36 mx-auto p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full shadow-2xl border-4 border-white/20 group hover:border-emerald-400/50 hover:shadow-emerald-500/25 transition-all duration-300"
+                                            onClick={openAvatarModal}>
+                                            <div className="w-full h-full rounded-full overflow-hidden shadow-xl relative">
+                                                {getAvatarDisplay()}
+                                                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded-full">
+                                                    <Upload className="w-10 h-10 text-emerald-300 animate-bounce" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-400 mt-4 text-sm font-medium">Click to change your avatar</p>
+                                        <p className="text-xs text-gray-500 mt-1">Supports custom uploads & gallery</p>
+                                    </div>
+                                </div>
+                            )}
+
+
+                            {/* 🔥 TAB 2: EMAIL */}
+                            {activeTab === 'email' && (
+                                <div className="space-y-4">
+                                    <h4 className="text-xl font-bold text-blue-400 mb-6 flex items-center gap-2">
+                                        <Mail className="w-5 h-5" /> Change Email
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <input
+                                            type="email"
+                                            placeholder="New Email Address"
+                                            value={newEmail}
+                                            onChange={(e) => setNewEmail(e.target.value)}
+                                            className="w-full p-4 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-lg focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-400/30 transition-all"
+                                        />
+                                        <input
+                                            type="password"
+                                            placeholder="Current Password"
+                                            value={oldPassword}
+                                            onChange={(e) => setOldPassword(e.target.value)}
+                                            className="w-full p-4 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-lg focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-400/30 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 🔥 TAB 3: PASSWORD */}
+                            {activeTab === 'password' && (
+                                <div className="space-y-4">
+                                    <h4 className="text-xl font-bold text-orange-400 mb-6 flex items-center gap-2">
+                                        <Lock className="w-5 h-5" /> Change Password
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <input
+                                            type="password"
+                                            placeholder="Old Password"
+                                            value={oldPassword}
+                                            onChange={(e) => setOldPassword(e.target.value)}
+                                            className="w-full p-4 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-lg focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-400/30 transition-all"
+                                        />
+                                        <input
+                                            type="password"
+                                            placeholder="New Password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            className="w-full p-4 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-lg focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-400/30 transition-all"
+                                        />
+                                        <input
+                                            type="password"
+                                            placeholder="Confirm New Password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className="md:col-span-2 w-full p-4 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-lg focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-400/30 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* SAVE BUTTON */}
+                            <div className="flex gap-4 pt-8 border-t border-white/20">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditProfile(false)}
+                                    className="flex-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-4 px-8 rounded-2xl border border-white/30 transition-all hover:scale-102"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editLoading}
+                                    className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 text-white font-black py-4 px-8 rounded-2xl shadow-2xl hover:shadow-3xl transition-all flex items-center justify-center space-x-3"
+                                >
+                                    {editLoading ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            <span>Saving...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="w-5 h-5" />
+                                            <span>Save Changes</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* LEFT DASHBOARD OVERLAY */}
             {showDashboard && (
                 <>
@@ -441,14 +719,9 @@ const MainApp = () => {
                         </div>
                         <div className="p-8 space-y-6 overflow-y-auto h-full">
                             {/* ✅ AVATAR - Click to change */}
-                            <div className="text-center space-y-4 pt-4 group cursor-pointer" onClick={openAvatarModal}>
-                                <div className="w-24 h-24 mx-auto rounded-3xl relative shadow-2xl border-4 border-white/20 hover:scale-105 transition-all overflow-hidden">
-                                    <div className="w-full h-full">
-                                        {getAvatarDisplay()}
-                                    </div>
-                                    <div className="absolute -top-1 -right-1 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 transition-all z-20">
-                                        <Upload className="w-3.5 h-3.5 text-purple-600" />
-                                    </div>
+                            <div className="text-center space-y-4 pt-4">
+                                <div className="w-24 h-24 mx-auto rounded-3xl shadow-2xl border-4 border-white/20 hover:border-emerald-400/50 transition-all overflow-hidden">
+                                    {getAvatarDisplay()}
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-black bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent">
@@ -460,17 +733,26 @@ const MainApp = () => {
 
                             {/* Profile actions */}
                             <div className="space-y-2">
-                                <button className="w-full flex items-center space-x-3 p-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl border border-white/20 transition-all hover:scale-[1.02]">
-                                    <User className="w-5 h-5 text-gray-300 hover:text-emerald-400" />
+                                <button
+                                    onClick={() => {
+                                        setEditForm({
+                                            fullname: profile?.fullname || '',     // ✅
+                                            bio: profile?.bio || '',
+                                            email: profile?.user?.email || '',
+                                            oldpassword: '',
+                                            newpassword: '',
+                                            newpasswordconfirm: ''
+                                        });
+                                        setShowEditProfile(true);
+                                    }}
+                                    className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 hover:from-emerald-500/30 hover:to-blue-500/30 backdrop-blur-sm rounded-2xl border border-emerald-400/30 hover:border-emerald-400/50 transition-all hover:scale-[1.02] shadow-xl hover:shadow-2xl"
+                                >
+                                    <User className="w-5 h-5 text-emerald-400" />
                                     <span className="font-semibold text-left flex-1">Edit Profile</span>
-                                    <Edit className="w-4 h-4 text-gray-400" />
+                                    <Edit className="w-4 h-4 text-emerald-300" />
                                 </button>
-                                
-                                <button className="w-full flex items-center space-x-3 p-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl border border-white/20 transition-all hover:scale-[1.02]">
-                                    <Lock className="w-5 h-5 text-gray-300 hover:text-orange-400" />
-                                    <span className="font-semibold text-left flex-1">Change Password</span>
-                                    <Shield className="w-4 h-4 text-gray-400" />
-                                </button>
+
+
                             </div>
 
                             {/* Stats */}
@@ -507,14 +789,25 @@ const MainApp = () => {
                     {/* ✅ NAVBAR AVATAR */}
                     <button
                         onClick={() => setShowDashboard(true)}
-                        className="w-16 h-16 rounded-3xl relative shadow-2xl hover:shadow-3xl hover:scale-105 transition-all group cursor-pointer overflow-hidden bg-gradient-to-r from-purple-500 to-pink-500"
+                        className="relative w-14 h-14 p-1 bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/20 hover:border-emerald-400/60 hover:bg-white/20 hover:shadow-emerald-500/25 hover:scale-105 hover:rotate-3 transition-all duration-300 group overflow-hidden"
                         title="Open Dashboard"
                     >
-                        {getAvatarDisplay()}
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 transition-all z-20">
-                            <Upload className="w-3 h-3 text-purple-600" />
+                        <div className="w-full h-full rounded-2xl bg-gradient-to-br from-slate-900/50 to-purple-900/50 backdrop-blur-xl border border-white/30 shadow-xl p-0.5 group-hover:shadow-2xl">
+                            <div className="w-full h-full rounded-xl overflow-hidden bg-white/5 shadow-2xl relative group-hover:bg-white/10 transition-all">
+                                {getAvatarDisplay()}
+                                {/* ✨ Premium Hover Effects */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 -skew-x-12 animate-pulse" />
+                                {/* Status Ring */}
+                                {profile?.avatar_id && (
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 rounded-3xl opacity-0 group-hover:opacity-100 blur-xl animate-ping" />
+                                )}
+                                {/* Click Indicator */}
+                                <div className="absolute top-1 right-1 w-3 h-3 bg-emerald-400 rounded-full opacity-0 group-hover:opacity-100 scale-0 group-hover:scale-100 transition-all duration-300" />
+                            </div>
                         </div>
                     </button>
+
 
                     <div className="flex items-center space-x-4">
                         <div className="text-right hidden lg:block">
@@ -601,8 +894,8 @@ const MainApp = () => {
                                 <div
                                     key={list.id}
                                     className={`group p-6 rounded-3xl cursor-pointer transition-all border-2 relative overflow-hidden ${selectedList?.id === list.id
-                                            ? 'border-white/50 bg-white/20 ring-4 ring-white/30 shadow-2xl scale-105'
-                                            : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20 hover:scale-105 hover:shadow-2xl'
+                                        ? 'border-white/50 bg-white/20 ring-4 ring-white/30 shadow-2xl scale-105'
+                                        : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20 hover:scale-105 hover:shadow-2xl'
                                         }`}
                                     onClick={() => setSelectedList(list)}
                                 >
@@ -730,10 +1023,10 @@ const MainApp = () => {
                                         <div
                                             key={task.id}
                                             className={`group p-6 rounded-3xl border transition-all shadow-xl hover:shadow-2xl ${task.status === 'done'
-                                                    ? 'border-emerald-400/50 bg-emerald-500/10'
-                                                    : task.status === 'deleted'
-                                                        ? 'border-gray-500/30 bg-gray-500/10 opacity-60'
-                                                        : 'border-white/20 bg-white/10 hover:border-white/40'
+                                                ? 'border-emerald-400/50 bg-emerald-500/10'
+                                                : task.status === 'deleted'
+                                                    ? 'border-gray-500/30 bg-gray-500/10 opacity-60'
+                                                    : 'border-white/20 bg-white/10 hover:border-white/40'
                                                 }`}
                                         >
                                             <div className="flex items-start justify-between gap-4">
@@ -743,8 +1036,8 @@ const MainApp = () => {
                                                             onClick={() => finishTask(task.id)}
                                                             disabled={task.status === 'done' || task.status === 'deleted'}
                                                             className={`p-2 rounded-2xl transition-all ${task.status === 'done'
-                                                                    ? 'bg-emerald-500/30 text-emerald-200 cursor-default'
-                                                                    : 'bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300'
+                                                                ? 'bg-emerald-500/30 text-emerald-200 cursor-default'
+                                                                : 'bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300'
                                                                 }`}
                                                         >
                                                             {task.status === 'done' ? (

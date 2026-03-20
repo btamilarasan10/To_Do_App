@@ -11,7 +11,8 @@ from django.db import IntegrityError
 from django.conf import settings
 import os
 from datetime import timedelta
-
+from django.contrib.auth import update_session_auth_hash
+from .serializers import ChangePasswordSerializer, UpdateEmailSerializer
 from .models import List, Task, FocusSession, Profile
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer,
@@ -152,7 +153,39 @@ class ProfileViewSet(viewsets.ModelViewSet):
             })
         except Exception as e:
             return Response({'error': str(e)}, status=404)
-
+    @action(detail=False, methods=['patch'])
+    def change_password(self, request):
+        """Update user password (requires old password)"""
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            if not user.check_password(serializer.validated_data['old_password']):
+                return Response({'error': 'Old password incorrect'}, status=400)
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            update_session_auth_hash(request, user)  # Keep user logged in
+            return Response({
+                'message': 'Password updated successfully! 🔒'
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['patch'])
+    def update_email(self, request):
+        """Update user email (requires password confirmation)"""
+        serializer = UpdateEmailSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            if not user.check_password(serializer.validated_data['password']):
+                return Response({'error': 'Current password incorrect'}, status=400)
+            if User.objects.filter(email=serializer.validated_data['new_email']).exclude(pk=user.pk).exists():
+                return Response({'error': 'Email already exists'}, status=400)
+            user.email = serializer.validated_data['new_email']
+            user.save()
+            return Response({
+                'message': 'Email updated successfully! 📧'
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 class ListViewSet(viewsets.ModelViewSet):
     serializer_class = ListSerializer
     permission_classes = [permissions.IsAuthenticated, IsListMemberOrOwner]
