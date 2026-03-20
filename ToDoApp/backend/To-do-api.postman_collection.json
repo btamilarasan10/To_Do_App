@@ -1,0 +1,171 @@
+{
+  "info": {
+    "_postman_id": "6ba94750-fb1c-406d-88b0-d16440cdc6b4",
+    "name": "To-do-api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52012992",
+    "_collection_link": "https://go.postman.co/collection/52012992-6ba94750-fb1c-406d-88b0-d16440cdc6b4?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "create_account",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "me",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "avator change",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "create a list",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "create task",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "pending",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "Dashboard",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "add avatar",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "update password",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczOTM1OTUwLCJpYXQiOjE3NzM5MzU2NTAsImp0aSI6ImQ1NTMxMTg0NjZjMDQwMTM4N2UxMGRlNjUzNzYzZmNjIiwidXNlcl9pZCI6IjIifQ.U1vXl2zjvSqlOT5Mv2N82_IgUZ9DLnW-EsRldepLiAg",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"old_password\": \"admin1234\",\r\n    \"new_password\": \"tamil123\",\r\n    \"new_password_confirm\": \"tamil123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/profile/change_password/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api",
+            "profile",
+            "change_password",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "update Gmail.com",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczOTM2MjAyLCJpYXQiOjE3NzM5MzU5MDIsImp0aSI6IjhlZTExZjY2M2Q4NzQ4ZWRiYzFkOWE5Mzk3ZWNkODJkIiwidXNlcl9pZCI6IjIifQ.SEr4MbKGioCMCXE4Iss9WBXVFvwlblY_vP1U6fr7VaQ",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"new_email\": \"thomas10@gmail.com\",\r\n    \"password\": \"tamil123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/profile/update_email/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api",
+            "profile",
+            "update_email",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
